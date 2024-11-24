@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Foundation
+import SwiftDate
 
 struct ServerData: Codable {
     let queuePosition: Int
@@ -78,7 +79,7 @@ struct GFNView: View {
                     }
                 }
             }
-            .navigationBarTitle("GFN Queue Times")
+            .navigationBarTitle("GFN Queue")
             .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 await fetchData()
@@ -132,15 +133,31 @@ struct ServerLink: View {
 
     var body: some View {
         NavigationLink(destination: GFNServerView(serverName: key)) {
-            VStack(alignment: .leading) {
-                Text("\(key) (\(server.name))")
-                Text("Queue Position: \(server.queuePosition)")
+            HStack {
+                // Badge with queue position and conditional color
+                Text("\(server.queuePosition)")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
-                Text("Last Updated: \(convertUnixTimestamp(TimeInterval(server.lastUpdated), format: .timeUntil))")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .padding(5)
+                    .frame(width: 40, height: 30)
+                    .background(
+                        Rectangle()
+                            .fill(
+                                server.queuePosition > 100 ? Color.red :
+                                server.queuePosition > 50 ? Color.yellow :
+                                Color.green
+                            )
+                            .cornerRadius(10)
+                    )
+                    .foregroundColor(.black)
+                
+                VStack(alignment: .leading) {
+                    Text("\(server.name)")
+                    Text("\(key) • \(Date(timeIntervalSince1970: TimeInterval(server.lastUpdated)).toRelative(since: nil))")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
             }
+            .padding(.vertical, 8)
         }
     }
 }

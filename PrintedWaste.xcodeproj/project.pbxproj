@@ -20,6 +20,7 @@
 		749891982BE88CE200DE7639 /* PrintedWasteUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749891972BE88CE200DE7639 /* PrintedWasteUITests.swift */; };
 		7498919A2BE88CE200DE7639 /* PrintedWasteUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749891992BE88CE200DE7639 /* PrintedWasteUITestsLaunchTests.swift */; };
 		74D320812BED8230005E92E0 /* GFNView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D320802BED8230005E92E0 /* GFNView.swift */; };
+		74ED740F2CEA4D08005B1FCF /* SwiftDate in Frameworks */ = {isa = PBXBuildFile; productRef = 74ED740E2CEA4D08005B1FCF /* SwiftDate */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +65,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				74ED740F2CEA4D08005B1FCF /* SwiftDate in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -235,6 +237,9 @@
 				Base,
 			);
 			mainGroup = 749891702BE88CE000DE7639;
+			packageReferences = (
+				74ED740D2CEA4D08005B1FCF /* XCRemoteSwiftPackageReference "SwiftDate" */,
+			);
 			productRefGroup = 7498917A2BE88CE000DE7639 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -618,6 +623,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		74ED740D2CEA4D08005B1FCF /* XCRemoteSwiftPackageReference "SwiftDate" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/malcommac/SwiftDate";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		74ED740E2CEA4D08005B1FCF /* SwiftDate */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 74ED740D2CEA4D08005B1FCF /* XCRemoteSwiftPackageReference "SwiftDate" */;
+			productName = SwiftDate;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 749891712BE88CE000DE7639 /* Project object */;
 }
