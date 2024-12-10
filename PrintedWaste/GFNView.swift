@@ -132,7 +132,7 @@ struct ServerLink: View {
     var server: ServerData
 
     var body: some View {
-        NavigationLink(destination: GFNServerView(serverName: key)) {
+        NavigationLink(destination: GFNServerView(endpoint: "https://api.printedwaste.com", server: key)) {
             HStack {
                 // Badge with queue position and conditional color
                 Text("\(server.queuePosition)")
