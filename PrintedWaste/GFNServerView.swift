@@ -67,9 +67,12 @@ struct GFNServerView: View {
     @State private var selectedTimeRange: String = "24h"
     @State private var avgQueuePosition: Int?
     @State private var minQueuePosition: Int?
+    @State private var currenQueuePosition: Int?
     @State private var maxQueuePosition: Int?
     @State private var selectedPoint: ChartData?
     @State private var chartSize: CGSize = .zero
+    @State private var tooltipPosition: CGPoint = .zero
+    @State private var dateRangeText: String = ""
 
     let timeRanges: [String: Int] = [
         "24h": 24,
@@ -81,29 +84,53 @@ struct GFNServerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Picker("Time Range", selection: $selectedTimeRange) {
-                    ForEach(timeRanges.keys.sorted(), id: \.self) { key in
-                        Text(key).tag(key)
-                    }
+            // Stats Cards
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    StatCard(
+                        title: "Current",
+                        value: currenQueuePosition ?? 0,
+                        color: .gray
+                    )
+                    StatCard(
+                        title: "High",
+                        value: maxQueuePosition ?? 0,
+                        color: .red
+                    )
+                    StatCard(
+                        title: "Low",
+                        value: minQueuePosition ?? 0,
+                        color: Color(red: 0.2, green: 0.5, blue: 0)
+                    )
+                    StatCard(
+                        title: "Average",
+                        value: avgQueuePosition ?? 0,
+                        color: Color(red: 0.85, green: 0.45, blue: 0)
+                    )
                 }
-                .pickerStyle(.menu)
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
             }
+            
+            // Date Range
+            Text(dateRangeText)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.secondary)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
 
+            // Chart
             ZStack {
                 if isLoading {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .scaleEffect(1.5)
+                        .scaleEffect(1.2)
                 } else {
                     GeometryReader { geo in
                         let gradient = LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.blue.opacity(0.5),
                                 Color.blue.opacity(0.2),
-                                Color.blue.opacity(0.05)
+                                Color.blue.opacity(0.05),
+                                Color.blue.opacity(0.02)
                             ]),
                             startPoint: .top,
                             endPoint: .bottom
@@ -122,56 +149,61 @@ struct GFNServerView: View {
                                 y: .value("Queue Position", d.queuePosition)
                             )
                             .interpolationMethod(.catmullRom)
-                            .lineStyle(StrokeStyle(lineWidth: 2.5))
+                            .lineStyle(StrokeStyle(lineWidth: 2))
                             .foregroundStyle(Color.blue)
 
-                            if #available(iOS 16.4, *) {
+                            if let selectedPoint = selectedPoint, selectedPoint.date == d.date {
+                                RuleMark(
+                                    x: .value("Selected", d.date)
+                                )
+                                .foregroundStyle(Color.gray.opacity(0.3))
+                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+
                                 PointMark(
                                     x: .value("Date", d.date),
                                     y: .value("Queue Position", d.queuePosition)
                                 )
-                                .foregroundStyle(selectedPoint?.id == d.id ? Color.blue : Color.blue.opacity(0.6))
-                                .symbolSize(selectedPoint?.id == d.id ? 150 : 100)
-                                .shadow(color: .blue.opacity(0.3), radius: selectedPoint?.id == d.id ? 4 : 2)
-                            } else {
-                                // Fallback on earlier versions
+                                .foregroundStyle(.blue)
+                                .symbolSize(100)
                             }
                         }
+                        .frame(height: 220)
+                        .chartYScale(domain: 0...max((maxQueuePosition ?? 200) + 20, 200))
                         .chartXAxis {
                             AxisMarks(values: .stride(by: 1)) { value in
                                 AxisGridLine()
-                                    .foregroundStyle(.gray.opacity(0.2))
+                                    .foregroundStyle(Color.gray.opacity(0.1))
                                 AxisTick()
-                                    .foregroundStyle(.gray.opacity(0.6))
+                                    .foregroundStyle(Color.gray.opacity(0.2))
                                 AxisValueLabel(centered: true)
-                                    .font(.caption2)
-                                    .foregroundStyle(.primary)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color.gray.opacity(0.7))
                             }
                         }
                         .chartYAxis {
-                            AxisMarks(position: .leading) { _ in
+                            AxisMarks(position: .leading, values: .stride(by: 50)) { value in
                                 AxisGridLine()
-                                    .foregroundStyle(.gray.opacity(0.2))
+                                    .foregroundStyle(Color.gray.opacity(0.1))
                                 AxisTick()
-                                    .foregroundStyle(.gray.opacity(0.6))
-                                AxisValueLabel()
-                                    .font(.caption2)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(Color.gray.opacity(0.2))
+                                AxisValueLabel() {
+                                    if let intValue = value.as(Int.self) {
+                                        Text("\(intValue)")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(Color.gray.opacity(0.7))
+                                    }
+                                }
                             }
                         }
-                        .chartBackground { proxy in
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color(uiColor: .systemBackground))
-                                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                        }
-                        .padding()
+                        .padding(.horizontal, 8)
                         .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
                                     let localPoint = value.location
+                                    tooltipPosition = value.location
                                     if let nearestData = findNearestDataPoint(at: localPoint, in: chartData, chartWidth: geo.size.width) {
-                                        withAnimation(.easeInOut) {
+                                        withAnimation(.easeInOut(duration: 0.1)) {
                                             selectedPoint = nearestData
                                         }
                                     }
@@ -182,66 +214,55 @@ struct GFNServerView: View {
                                     }
                                 }
                         )
-                        .onAppear {
-                            chartSize = geo.size
-                        }
-                        .onChange(of: geo.size) { newSize in
-                            chartSize = newSize
-                        }
-                        .overlay(alignment: .top) {
-                            ZStack(alignment: .topTrailing) {
-                                if let avg = avgQueuePosition {
-                                    ReferenceLine(position: avg, label: "Avg: \(avg)", color: .orange)
+                        .overlay {
+                            if let point = selectedPoint {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(point.date)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(.primary)
+                                    HStack(spacing: 4) {
+                                        Text("Queue:")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(.secondary)
+                                        Text("\(point.queuePosition)")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(.blue)
+                                    }
                                 }
-                                if let minVal = minQueuePosition {
-                                    ReferenceLine(position: minVal, label: "Min: \(minVal)", color: .green, alignment: .bottomLeading)
-                                }
-                                if let maxVal = maxQueuePosition {
-                                    ReferenceLine(position: maxVal, label: "Max: \(maxVal)", color: .red)
-                                }
+                                .padding(10)
+                                .background(Color(uiColor: .systemBackground).opacity(0.95))
+                                .cornerRadius(10)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5)
+                                .position(x: min(max(tooltipPosition.x, 80), geo.size.width - 80),
+                                         y: max(tooltipPosition.y - 40, 40))
                             }
-                        }
-
-                        if let point = selectedPoint {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(point.date)
-                                    .font(.callout.bold())
-                                    .foregroundStyle(.primary)
-                                HStack {
-                                    Text("Queue Position:")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(point.queuePosition)")
-                                        .font(.caption.bold())
-                                        .foregroundStyle(.blue)
-                                }
-                            }
-                            .padding(12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(.ultraThinMaterial)
-                                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-                            )
-                            .transition(.scale.combined(with: .opacity))
-                            .padding(.top, 50)
                         }
                     }
                 }
             }
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(.regularMaterial)
-                    .shadow(radius: 10)
-                    .padding()
-            )
+            .background(Color(uiColor: .systemBackground))
+            .cornerRadius(16)
+            .padding(.horizontal, 16)
 
             Spacer()
         }
         .background(Color(uiColor: .systemBackground))
+        .navigationBarItems(trailing: 
+            Menu {
+                Picker("Time Range", selection: $selectedTimeRange) {
+                    ForEach(timeRanges.keys.sorted(), id: \.self) { key in
+                        Text(key).tag(key)
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(selectedTimeRange)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .foregroundColor(.blue)
+            }
+        )
         .onAppear {
             fetchData()
         }
@@ -265,19 +286,25 @@ struct GFNServerView: View {
                 switch decodedResponse {
                 case .success(let decodedData):
                     let groupedData = processQueueData(decodedData)
+                    
+                    // Get current queue position from the most recent data point
+                    let currentPosition = decodedData
+                        .sorted(by: { $0.date > $1.date }) // Sort by most recent
+                        .first
+                        .flatMap { $0.data[server]?.QueuePosition }
+                    
                     DispatchQueue.main.async {
                         self.chartData = groupedData
                         self.avgQueuePosition = calculateAverageQueuePosition(groupedData)
                         self.minQueuePosition = groupedData.map(\.queuePosition).min()
                         self.maxQueuePosition = groupedData.map(\.queuePosition).max()
+                        self.currenQueuePosition = currentPosition
                     }
                 case .failure(let errorResponse):
                     print("Server Error: \(errorResponse.error)")
-                    // Handle the error accordingly, e.g., show an alert to the user
                 }
             } catch {
                 print("Failed to decode data: \(error)")
-                // Optionally, print the raw response for debugging
                 if let responseString = String(data: data, encoding: .utf8) {
                     print("Response String: \(responseString)")
                 }
@@ -286,29 +313,127 @@ struct GFNServerView: View {
     }
 
     func processQueueData(_ data: [QueueDataV2]) -> [ChartData] {
-        var groupedData: [String: [Int]] = [:]
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm" // Adjust as needed
-
-        for entry in data {
-            let date = formatter.string(from: entry.date)
-
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone.current
+        
+        // Determine aggregation interval and format based on time range
+        let (aggregationUnit, dateFormat): (Calendar.Component, String) = {
+            switch selectedTimeRange {
+                case "24h":
+                    return (.hour, "HH:mm")
+                case "7d":
+                    return (.hour, "MMM d HH:mm")
+                case "14d", "30d", "lifetime":
+                    return (.day, "MMM d")
+                default:
+                    return (.hour, "MMM d HH:mm")
+            }
+        }()
+        
+        formatter.dateFormat = dateFormat
+        
+        // Sort data by timestamp first
+        let sortedData = data.sorted { $0.date < $1.date }
+        
+        // Group data by the appropriate time unit
+        var timeWindows: [Date: [Int]] = [:]
+        var earliestDate: Date?
+        var latestDate: Date?
+        
+        for entry in sortedData {
+            let date = entry.date
+            
+            // Get the start of the time unit (hour or day)
+            var components = calendar.dateComponents([.year, .month, .day], from: date)
+            if aggregationUnit == .hour {
+                components.hour = calendar.component(.hour, from: date)
+            }
+            let windowDate = calendar.date(from: components) ?? date
+            
+            if earliestDate == nil || date < earliestDate! {
+                earliestDate = date
+            }
+            if latestDate == nil || date > latestDate! {
+                latestDate = date
+            }
+            
             if let serverEntry = entry.data[server] {
-                if groupedData[date] == nil {
-                    groupedData[date] = []
+                if timeWindows[windowDate] == nil {
+                    timeWindows[windowDate] = []
                 }
-                groupedData[date]?.append(serverEntry.QueuePosition)
+                timeWindows[windowDate]?.append(serverEntry.QueuePosition)
             }
         }
-
+        
+        // Process windows into data points
         var processedData: [ChartData] = []
-        for (date, positions) in groupedData {
+        
+        for (windowDate, positions) in timeWindows.sorted(by: { $0.key < $1.key }) {
             guard !positions.isEmpty else { continue }
-            let average = positions.reduce(0, +) / positions.count
-            processedData.append(ChartData(date: date, queuePosition: average))
+            
+            // Calculate value with outlier removal
+            let mean = Double(positions.reduce(0, +)) / Double(positions.count)
+            let variance = positions.map { pow(Double($0) - mean, 2) }.reduce(0, +) / Double(positions.count)
+            let stdDev = sqrt(variance)
+            
+            // Filter out outliers (values more than 2 standard deviations from mean)
+            let filteredPositions = positions.filter {
+                abs(Double($0) - mean) <= 2 * stdDev
+            }
+            
+            let finalValue = filteredPositions.isEmpty ?
+                positions.reduce(0, +) / positions.count :
+                filteredPositions.reduce(0, +) / filteredPositions.count
+            
+            processedData.append(ChartData(
+                date: formatter.string(from: windowDate),
+                queuePosition: finalValue
+            ))
         }
-
-        return processedData.sorted(by: { $0.date < $1.date })
+        
+        // Update date range text
+        if let earliest = earliestDate, let latest = latestDate {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateFormat = "MMM d"
+            let startDate = displayFormatter.string(from: earliest)
+            let endDate = displayFormatter.string(from: latest)
+            DispatchQueue.main.async {
+                self.dateRangeText = "\(startDate) - \(endDate)"
+            }
+        }
+        
+        // For 24h view, ensure we have enough points for smooth display
+        if selectedTimeRange == "24h" && processedData.count < 24 {
+            // Fill in missing hours with interpolated values
+            var filledData: [ChartData] = []
+            if let firstDate = calendar.date(from: calendar.dateComponents([.year, .month, .day, .hour], from: earliestDate ?? Date())) {
+                for hour in 0..<24 {
+                    let currentDate = calendar.date(byAdding: .hour, value: hour, to: firstDate)!
+                    let dateString = formatter.string(from: currentDate)
+                    
+                    if let existingPoint = processedData.first(where: { $0.date == dateString }) {
+                        filledData.append(existingPoint)
+                    } else {
+                        // Find nearest points for interpolation
+                        if let before = processedData.last(where: { $0.date < dateString }),
+                           let after = processedData.first(where: { $0.date > dateString }) {
+                            // Simple linear interpolation
+                            let beforeIndex = processedData.firstIndex(where: { $0.date == before.date })!
+                            let afterIndex = processedData.firstIndex(where: { $0.date == after.date })!
+                            let progress = Double(hour - beforeIndex) / Double(afterIndex - beforeIndex)
+                            let interpolatedValue = before.queuePosition + Int(Double(after.queuePosition - before.queuePosition) * progress)
+                            filledData.append(ChartData(date: dateString, queuePosition: interpolatedValue))
+                        }
+                    }
+                }
+                if !filledData.isEmpty {
+                    processedData = filledData
+                }
+            }
+        }
+        
+        return processedData
     }
 
     func calculateAverageQueuePosition(_ data: [ChartData]) -> Int? {
@@ -329,21 +454,24 @@ struct GFNServerView: View {
     }
 }
 
-struct ReferenceLine: View {
-    let position: Int
-    let label: String
+struct StatCard: View {
+    let title: String
+    let value: Int
     let color: Color
-    var alignment: Alignment = .topTrailing
-
+    
     var body: some View {
-        GeometryReader { proxy in
-            let yPos = proxy.size.height * 0.2 // adjust if necessary
-            Text(label)
-                .font(.caption2)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+            Text("\(value)")
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(color)
-                .padding(4)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 4))
-                .position(x: alignment == .bottomLeading ? 40 : proxy.size.width - 40, y: yPos)
         }
+        .frame(width: 100, alignment: .leading)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(color.opacity(0.15))
+        .cornerRadius(12)
     }
 }

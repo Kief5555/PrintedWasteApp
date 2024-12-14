@@ -38,7 +38,7 @@ struct HomeView: View {
             List {
                 NavigationLink(destination: GFNView()) {
                     HStack {
-                        Image(systemName: "clock.arrow.2.circlepath")
+                        Image(systemName: "person.badge.clock")
                             .applyStackImageStyling()
                         Text("GFN Queue")
                             .foregroundColor(.primary)

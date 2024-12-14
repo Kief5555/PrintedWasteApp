@@ -60,36 +60,95 @@ func loadServerData() -> AllServerData? {
 
 typealias AllServerData = [String: ServerRegion]
 
+@propertyWrapper
+struct SetStorage {
+    private let key: String
+    private let defaultValue: Set<String>
+    private let storage: UserDefaults
+
+    init(wrappedValue: Set<String> = [], key: String, storage: UserDefaults = .standard) {
+        self.defaultValue = wrappedValue
+        self.key = key
+        self.storage = storage
+    }
+
+    var wrappedValue: Set<String> {
+        get {
+            let array = storage.array(forKey: key) as? [String] ?? []
+            return Set(array)
+        }
+        set {
+            storage.set(Array(newValue), forKey: key)
+        }
+    }
+}
 
 struct GFNView: View {
     @State private var queueData: [String: QueueData] = [:]
     @State private var isLoading = true
+    @State private var favoriteServers: Set<String> = {
+        let array = UserDefaults.standard.array(forKey: "favoriteServers") as? [String] ?? []
+        return Set(array)
+    }()
 
     var body: some View {
-            VStack {
-                if isLoading {
-                    ProgressView("LOADING...")
-                } else {
-                    List(queueData.sorted(by: { $0.key < $1.key }), id: \.key) { key, servers in
-                        Section(header: Text(key).font(.headline)) {
-                            ForEach(servers.sorted(by: { $0.key < $1.key }), id: \.key) { key, server in
-                                ServerLink(key: key, server: server)
+        VStack(spacing: 0) {
+            if isLoading {
+                VStack {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Loading Servers")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    if !favoriteServers.isEmpty {
+                        Section {
+                            ForEach(queueData.values.flatMap { $0.filter { favoriteServers.contains($0.key) } }
+                                .sorted(by: { $0.key < $1.key }), id: \.key) { key, server in
+                                ServerLink(key: key, server: server, isFavorite: true, toggleFavorite: toggleFavorite)
                             }
+                        } header: {
+                            Text("Favorites")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .textCase(nil)
+                                .padding(.bottom, 4)
+                        }
+                    }
+                    
+                    ForEach(queueData.sorted(by: { $0.key < $1.key }), id: \.key) { key, servers in
+                        Section {
+                            ForEach(servers.sorted(by: { $0.key < $1.key }), id: \.key) { key, server in
+                                if !favoriteServers.contains(key) {
+                                    ServerLink(key: key, server: server, isFavorite: false, toggleFavorite: toggleFavorite)
+                                }
+                            }
+                        } header: {
+                            Text(key)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .textCase(nil)
+                                .padding(.bottom, 4)
                         }
                     }
                 }
+                .listStyle(.insetGrouped)
             }
-            .navigationBarTitle("GFN Queue")
-            .navigationBarTitleDisplayMode(.inline)
-            .refreshable {
+        }
+        .navigationBarTitle("GFN Queue", displayMode: .inline)
+        .refreshable {
+            await fetchData()
+        }
+        .onAppear {
+            Task {
                 await fetchData()
+                setupAutoRefresh()
             }
-            .onAppear {
-                Task {
-                    await fetchData()
-                    setupAutoRefresh()
-                }
-            }
+        }
     }
 
     private func setupAutoRefresh() {
@@ -125,39 +184,77 @@ struct GFNView: View {
             print("Error fetching data: \(error)")
         }
     }
+
+    private func toggleFavorite(for serverKey: String) {
+        if favoriteServers.contains(serverKey) {
+            favoriteServers.remove(serverKey)
+        } else {
+            favoriteServers.insert(serverKey)
+        }
+        UserDefaults.standard.set(Array(favoriteServers), forKey: "favoriteServers")
+    }
 }
 
 struct ServerLink: View {
     var key: String
     var server: ServerData
+    var isFavorite: Bool
+    var toggleFavorite: (String) -> Void
 
     var body: some View {
         NavigationLink(destination: GFNServerView(endpoint: "https://api.printedwaste.com", server: key)) {
-            HStack {
-                // Badge with queue position and conditional color
+            HStack(spacing: 12) {
+                // Queue position badge
                 Text("\(server.queuePosition)")
-                    .font(.subheadline)
-                    .padding(5)
-                    .frame(width: 40, height: 30)
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 28)
                     .background(
-                        Rectangle()
+                        RoundedRectangle(cornerRadius: 8)
                             .fill(
                                 server.queuePosition > 100 ? Color.red :
-                                server.queuePosition > 50 ? Color.yellow :
-                                Color.green
+                                server.queuePosition > 50 ? Color(red: 0.85, green: 0.45, blue: 0) :
+                                Color(red: 0.2, green: 0.5, blue: 0)
                             )
-                            .cornerRadius(10)
                     )
-                    .foregroundColor(.black)
+                    .foregroundColor(.white)
                 
-                VStack(alignment: .leading) {
-                    Text("\(server.name)")
-                    Text("\(key) • \(Date(timeIntervalSince1970: TimeInterval(server.lastUpdated)).toRelative(since: nil))")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(server.name)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary)
+                        if isFavorite {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    
+                    HStack(spacing: 6) {
+                        Text(key)
+                            .font(.system(size: 13))
+                        Text("•")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                        Text(Date(timeIntervalSince1970: TimeInterval(server.lastUpdated)).toRelative(since: nil))
+                            .font(.system(size: 13))
+                    }
+                    .foregroundColor(.secondary)
                 }
+                
+                Spacer()
             }
             .padding(.vertical, 8)
+        }
+        .contextMenu {
+            Button(action: {
+                toggleFavorite(key)
+            }) {
+                Label(
+                    isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                    systemImage: isFavorite ? "star.slash.fill" : "star.fill"
+                )
+            }
         }
     }
 }

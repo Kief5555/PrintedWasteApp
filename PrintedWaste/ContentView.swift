@@ -22,10 +22,13 @@ struct ContentView: View {
                 }
                 
                 // Second Tab
-                Text("Second Tab Content")
+                NavigationView {
+                    ToolsView()
+                        .navigationTitle("Tools")
+                }
                     .tabItem {
-                        Image(systemName: "2.circle")
-                        Text("Second")
+                        Image(systemName: "shippingbox")
+                        Text("Tools")
                     }
                 
                 // Third Tab
