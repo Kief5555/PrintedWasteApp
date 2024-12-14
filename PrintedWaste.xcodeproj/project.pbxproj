@@ -22,6 +22,7 @@
 		74D320812BED8230005E92E0 /* GFNView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D320802BED8230005E92E0 /* GFNView.swift */; };
 		74E8E2572D0D18060054F7A0 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E8E2562D0D18010054F7A0 /* ToolsView.swift */; };
 		74E8E2592D0D19530054F7A0 /* MergerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E8E2582D0D19500054F7A0 /* MergerView.swift */; };
+		74EBE7B02D0D30DE00524F29 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 74EBE7AF2D0D30DE00524F29 /* Info.plist */; };
 		74ED740F2CEA4D08005B1FCF /* SwiftDate in Frameworks */ = {isa = PBXBuildFile; productRef = 74ED740E2CEA4D08005B1FCF /* SwiftDate */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +63,7 @@
 		74D320802BED8230005E92E0 /* GFNView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GFNView.swift; sourceTree = "<group>"; };
 		74E8E2562D0D18010054F7A0 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
 		74E8E2582D0D19500054F7A0 /* MergerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergerView.swift; sourceTree = "<group>"; };
+		74EBE7AF2D0D30DE00524F29 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +115,7 @@
 		7498917B2BE88CE000DE7639 /* PrintedWaste */ = {
 			isa = PBXGroup;
 			children = (
+				74EBE7AF2D0D30DE00524F29 /* Info.plist */,
 				74E8E2582D0D19500054F7A0 /* MergerView.swift */,
 				74E8E2562D0D18010054F7A0 /* ToolsView.swift */,
 				7498917C2BE88CE000DE7639 /* PrintedWasteApp.swift */,
@@ -262,6 +265,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				74EBE7B02D0D30DE00524F29 /* Info.plist in Resources */,
 				743613202BEDBB5500C78914 /* GFNServerData.json in Resources */,
 				749891842BE88CE200DE7639 /* Preview Assets.xcassets in Resources */,
 				749891812BE88CE200DE7639 /* Assets.xcassets in Resources */,
@@ -386,6 +390,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = ./PrintedWaste/info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -443,6 +448,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_FILE = ./PrintedWaste/info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;

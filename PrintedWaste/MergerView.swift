@@ -22,6 +22,8 @@ struct PDFMergerView: View {
     @State private var showPDFPreview = false
     @State private var previewURL: URL?
     @State private var mergedPDFData: Data?
+    @State private var showCamera = false
+    @State private var capturedImage: UIImage?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -128,6 +130,9 @@ struct PDFMergerView: View {
                         Button("Photo Library") {
                             showPhotoPicker = true
                         }
+                        Button("Take Photo") {
+                            showCamera = true
+                        }
                     }
                 }
                 
@@ -174,6 +179,17 @@ struct PDFMergerView: View {
         .sheet(isPresented: $showPDFPreview) {
             if let url = previewURL {
                 PDFPreviewView(downloadURL: url, pdfData: mergedPDFData, isPresented: $showPDFPreview)
+            }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraView(capturedImage: $capturedImage, isPresented: $showCamera)
+                .ignoresSafeArea()
+        }
+        .onChange(of: capturedImage) { image in
+            if let image = image {
+                let mergeItem = MergeItem(image: image, filename: "Photo \(selectedFiles.count + 1)")
+                selectedFiles.append(mergeItem)
+                capturedImage = nil
             }
         }
     }
@@ -476,6 +492,43 @@ struct PDFKitView: UIViewRepresentable {
         
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             return scrollView.subviews.first
+        }
+    }
+}
+
+struct CameraView: UIViewControllerRepresentable {
+    @Binding var capturedImage: UIImage?
+    @Binding var isPresented: Bool
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .camera
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraView
+        
+        init(_ parent: CameraView) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.capturedImage = image
+            }
+            parent.isPresented = false
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.isPresented = false
         }
     }
 }
