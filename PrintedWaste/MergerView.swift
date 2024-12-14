@@ -24,17 +24,20 @@ struct PDFMergerView: View {
     @State private var mergedPDFData: Data?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(spacing: 0) {
             // Description section
             VStack(alignment: .leading, spacing: 8) {
                 Text("Combine PDFs and Images")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Text("Select multiple files to merge them into a single PDF document.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal)
+            .padding(.bottom, 20)
             
             // Selected files list
             if !selectedFiles.isEmpty {
@@ -67,13 +70,15 @@ struct PDFMergerView: View {
                                     .padding(.trailing, 8)
                             }
                             .padding(.vertical, 4)
+                            .listRowBackground(Color(uiColor: .systemGray6))
                         }
                         .onMove(perform: moveItems)
                         .onDelete(perform: removeItems)
                     }
                     .listStyle(.insetGrouped)
-                    .frame(maxHeight: UIScreen.main.bounds.height * 0.5)
+                    .scrollContentBackground(.hidden)
                     
+                    // Clear All button
                     HStack {
                         Spacer()
                         Button(action: {
@@ -85,14 +90,13 @@ struct PDFMergerView: View {
                         }
                         .buttonStyle(.plain)
                         .opacity(isMerging ? 0 : 1)
-                        .animation(.easeInOut, value: isMerging)
                     }
                     .padding(.horizontal)
-                    .padding(.top, 4)
+                    .padding(.top, 8)
                 }
             }
             
-            Spacer(minLength: 0)
+            Spacer()
             
             // Error message
             if let error = errorMessage {
@@ -100,9 +104,10 @@ struct PDFMergerView: View {
                     .font(.footnote)
                     .foregroundColor(.red)
                     .padding(.horizontal)
+                    .padding(.bottom, 8)
             }
             
-            // Buttons section
+            // Bottom buttons
             VStack(spacing: 16) {
                 if !isMerging {
                     Button(action: { showSourceMenu = true }) {
@@ -146,8 +151,9 @@ struct PDFMergerView: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom)
         }
-        .padding(.vertical)
+        .padding(.top)
         .navigationTitle("PDF Merger")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(
