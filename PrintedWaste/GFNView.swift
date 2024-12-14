@@ -86,6 +86,7 @@ struct SetStorage {
 struct GFNView: View {
     @State private var queueData: [String: QueueData] = [:]
     @State private var isLoading = true
+    @State private var showTooltip = true
     @State private var favoriteServers: Set<String> = {
         let array = UserDefaults.standard.array(forKey: "favoriteServers") as? [String] ?? []
         return Set(array)
@@ -113,7 +114,7 @@ struct GFNView: View {
                             }
                         } header: {
                             Text("Favorites")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundColor(.primary)
                                 .textCase(nil)
                                 .padding(.bottom, 4)
@@ -129,7 +130,7 @@ struct GFNView: View {
                             }
                         } header: {
                             Text(key)
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundColor(.primary)
                                 .textCase(nil)
                                 .padding(.bottom, 4)
@@ -140,6 +141,15 @@ struct GFNView: View {
             }
         }
         .navigationBarTitle("GFN Queue", displayMode: .inline)
+        .overlay(
+            Group {
+                if showTooltip {
+                    TooltipView {
+                        showTooltip = false
+                    }
+                }
+            }
+        )
         .refreshable {
             await fetchData()
         }
@@ -147,6 +157,7 @@ struct GFNView: View {
             Task {
                 await fetchData()
                 setupAutoRefresh()
+                showTooltip = !UserDefaults.standard.bool(forKey: "hasSeenTooltip")
             }
         }
     }
@@ -256,6 +267,49 @@ struct ServerLink: View {
                 )
             }
         }
+    }
+}
+
+struct TooltipView: View {
+    var onDismiss: () -> Void
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.yellow)
+                    
+                    Text("Press and hold any server to add it to your favorites")
+                        .font(.system(size: 15))
+                        .foregroundColor(.primary)
+                        .lineSpacing(4)
+                }
+                
+                Divider()
+                
+                Button(action: {
+                    UserDefaults.standard.set(true, forKey: "hasSeenTooltip")
+                    onDismiss()
+                }) {
+                    Text("Continue")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        }
+        .transition(.move(edge: .bottom))
+        .animation(.spring(), value: true)
     }
 }
 
